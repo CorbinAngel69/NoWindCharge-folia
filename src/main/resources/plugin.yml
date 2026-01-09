@@ -1,6 +1,7 @@
 name: NoWindCharge
 version: '${project.version}'
 main: org.me.pyke.nowindcharge.NoWindCharge
+folia-supported: true
 api-version: '1.21'
 author: 666pyke
 softdepend:
