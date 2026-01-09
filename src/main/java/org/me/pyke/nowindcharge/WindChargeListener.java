@@ -13,7 +13,6 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.ExplosionPrimeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
-
 import java.util.List;
 
 public class WindChargeListener implements Listener {
@@ -27,19 +26,24 @@ public class WindChargeListener implements Listener {
     @EventHandler
     public void onPlayerUseWindCharge(PlayerInteractEvent event) {
         Player player = event.getPlayer();
+
         ItemStack mainHandItem = player.getInventory().getItemInMainHand();
         ItemStack offHandItem = player.getInventory().getItemInOffHand();
 
-        // Check if neither hand has WIND_CHARGE OR the action is not a right-click
-        if ((mainHandItem.getType() != Material.WIND_CHARGE && offHandItem.getType() != Material.WIND_CHARGE) ||
-                (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK)) {
+        if ((mainHandItem.getType() != Material.WIND_CHARGE &&
+             offHandItem.getType() != Material.WIND_CHARGE) ||
+            (event.getAction() != Action.RIGHT_CLICK_AIR &&
+             event.getAction() != Action.RIGHT_CLICK_BLOCK)) {
             return;
         }
 
         if (plugin.getConfig().getBoolean("disable-completely", false)) {
             event.setCancelled(true);
-            String message = plugin.getConfig().getString("completely-disabled-message", "&cWIND_CHARGE usage is completely disabled!");
-            player.sendMessage(plugin.formatMessage(message));
+            player.sendMessage(plugin.formatMessage(
+                    plugin.getConfig().getString(
+                            "completely-disabled-message",
+                            "&cWIND_CHARGE usage is completely disabled!"
+                    )));
             return;
         }
 
@@ -49,26 +53,31 @@ public class WindChargeListener implements Listener {
 
         if (isInExcludedRegion(player)) {
             event.setCancelled(true);
-            String message = plugin.getConfig().getString("deny-message", "&cYou cannot use this item in region &e%region%&c!");
-            player.sendMessage(plugin.formatMessage(message.replace("%region%", getRegionName(player))));
+            String message = plugin.getConfig().getString(
+                    "deny-message",
+                    "&cYou cannot use this item in region &e%region%&c!"
+            );
+            player.sendMessage(plugin.formatMessage(
+                    message.replace("%region%", getRegionName(player))
+            ));
         }
     }
 
     @EventHandler
     public void onWindChargeExplosion(ExplosionPrimeEvent event) {
-        // Check if the plugin is completely disabled for WIND_CHARGE
         if (plugin.getConfig().getBoolean("disable-completely", false)) {
             event.setCancelled(true);
             return;
         }
 
-        if (event.getEntity().getType() == EntityType.WIND_CHARGE || event.getEntity().getType() == EntityType.BREEZE_WIND_CHARGE) {
-            for (Player player : event.getEntity().getWorld().getPlayers()) {
-                if (player.getLocation().distanceSquared(event.getEntity().getLocation()) < 16 && isInExcludedRegion(player)) {
-                    event.setCancelled(true);
-                    return;
-                }
-            }
+        if (event.getEntity().getType() != EntityType.WIND_CHARGE &&
+            event.getEntity().getType() != EntityType.BREEZE_WIND_CHARGE) {
+            return;
+        }
+
+        if (event.getEntity().getNearbyEntities(4, 4, 4).stream()
+                .anyMatch(e -> e instanceof Player player && isInExcludedRegion(player))) {
+            event.setCancelled(true);
         }
     }
 
@@ -82,14 +91,14 @@ public class WindChargeListener implements Listener {
 
         if (regionManager == null) return false;
 
-        ApplicableRegionSet regions = regionManager.getApplicableRegions(BukkitAdapter.asBlockVector(player.getLocation()));
+        ApplicableRegionSet regions =
+                regionManager.getApplicableRegions(BukkitAdapter.asBlockVector(player.getLocation()));
 
         for (ProtectedRegion region : regions) {
             if (excludedRegions.contains(region.getId())) {
                 return true;
             }
         }
-
         return false;
     }
 
@@ -101,12 +110,12 @@ public class WindChargeListener implements Listener {
 
         if (regionManager == null) return "unknown";
 
-        ApplicableRegionSet regions = regionManager.getApplicableRegions(BukkitAdapter.asBlockVector(player.getLocation()));
+        ApplicableRegionSet regions =
+                regionManager.getApplicableRegions(BukkitAdapter.asBlockVector(player.getLocation()));
 
         for (ProtectedRegion region : regions) {
             return region.getId();
         }
-
         return "unknown";
     }
 }
